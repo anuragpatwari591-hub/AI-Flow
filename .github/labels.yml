@@ -1,0 +1,25 @@
+# Reference list of labels used by this project.
+# Apply with a tool like https://github.com/Financial-Times/github-label-sync
+# or create manually under Settings -> Labels.
+
+- name: bug
+  color: "d73a4a"
+  description: Something isn't working
+- name: feature
+  color: "a2eeef"
+  description: New feature or request
+- name: security
+  color: "b60205"
+  description: Security-related issue
+- name: provider
+  color: "0e8a16"
+  description: Related to an AI provider adapter
+- name: documentation
+  color: "0075ca"
+  description: Improvements or additions to documentation
+- name: good first issue
+  color: "7057ff"
+  description: Good for newcomers
+- name: help wanted
+  color: "008672"
+  description: Extra attention is needed

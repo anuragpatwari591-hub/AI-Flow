@@ -1,0 +1,19 @@
+{
+  "name": "ai-flow",
+  "private": true,
+  "version": "0.1.0",
+  "description": "AI Flow — queue once, resume automatically. A browser-based AI task orchestration and continuation platform.",
+  "workspaces": [
+    "extension"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace extension",
+    "build": "npm run build --workspace extension",
+    "test": "npm run test --workspace extension",
+    "test:watch": "npm run test:watch --workspace extension",
+    "lint": "npm run lint --workspace extension",
+    "typecheck": "npm run typecheck --workspace extension",
+    "e2e": "npm run e2e --workspace extension"
+  },
+  "license": "MIT"
+}
