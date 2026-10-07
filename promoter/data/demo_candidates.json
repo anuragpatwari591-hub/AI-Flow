@@ -1,0 +1,84 @@
+[
+ {
+  "platform": "youtube",
+  "creator": "Demo Creator A",
+  "title": "Hindi romantic reel | late night drive golden hour edit",
+  "description": "love couple cinematic hindi aesthetic song",
+  "top_comments": [
+   "Ye mood bahut sundar",
+   "need a song for this"
+  ],
+  "comment_count": 120,
+  "age_days": 3,
+  "creator_subs": 8000,
+  "url": "https://example.invalid/demo/0"
+ },
+ {
+  "platform": "youtube",
+  "creator": "Demo Creator B",
+  "title": "Any new Hindi indie song recommendations? underrated romantic",
+  "description": "music discovery, hindi, suggest songs playlist",
+  "top_comments": [
+   "suggest soft hindi songs",
+   "new music please"
+  ],
+  "comment_count": 300,
+  "age_days": 5,
+  "creator_subs": 2500,
+  "url": "https://example.invalid/demo/1"
+ },
+ {
+  "platform": "instagram",
+  "creator": "Demo Creator C",
+  "title": "Shayari poetry for late night thoughts",
+  "description": "hindi poetry shayari lyrics midnight dil",
+  "top_comments": [
+   "waah",
+   "ye lines meri diary jaise"
+  ],
+  "comment_count": 90,
+  "age_days": 2,
+  "creator_subs": 15000,
+  "url": "https://example.invalid/demo/2"
+ },
+ {
+  "platform": "youtube",
+  "creator": "Demo Creator D",
+  "title": "Heartbreak vibes hindi sad song edit",
+  "description": "breakup sad hindi lyrics aesthetic reel",
+  "top_comments": [
+   "feel hua",
+   "miss you"
+  ],
+  "comment_count": 60,
+  "age_days": 9,
+  "creator_subs": 40000,
+  "url": "https://example.invalid/demo/3"
+ },
+ {
+  "platform": "reddit",
+  "creator": "Demo Creator E",
+  "title": "Prank gone wrong funeral politics roast",
+  "description": "prank",
+  "top_comments": [
+   "lol"
+  ],
+  "comment_count": 900,
+  "age_days": 1,
+  "creator_subs": 100,
+  "url": "https://example.invalid/demo/4"
+ },
+ {
+  "platform": "youtube",
+  "creator": "Demo Creator A",
+  "title": "Another reel by same creator romantic hindi",
+  "description": "love hindi",
+  "top_comments": [
+   "nice"
+  ],
+  "comment_count": 40,
+  "age_days": 1,
+  "creator_subs": 8000,
+  "url": "https://example.invalid/demo/5"
+ }
+]

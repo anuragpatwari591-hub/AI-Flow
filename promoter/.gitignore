@@ -1,0 +1,4 @@
+data/promoter.db
+data/*.html
+data/config.json
+__pycache__/
