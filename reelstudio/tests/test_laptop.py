@@ -142,6 +142,7 @@ def client(env, monkeypatch, tmp_path):
 def test_media_supports_head_and_range(stack):
     from reelstudio.api.app import create_app
     from reelstudio.publishing.media import public_url
+    stack.s.commit()          # the API uses its own connection; Postgres only shows committed rows
     c = TestClient(create_app())
     url = public_url(stack.reel.id, "video", stack.reel.video_sha256, base="https://h.test").replace("https://h.test", "")
     size = Path(stack.reel.video_path).stat().st_size
