@@ -1,15 +1,17 @@
-# One-box production stack: Postgres + API + worker + Caddy (automatic HTTPS via Let's Encrypt).
-# Requirements: a server with Docker, ports 80/443 open, and a DNS A record for RS_DOMAIN pointing at it.
-# Secrets live in ./.env (git-ignored): RS_SECRET_KEY, RS_DASHBOARD_TOKEN, RS_META_APP_ID, RS_META_APP_SECRET,
-# plus POSTGRES_PASSWORD and RS_DOMAIN (e.g. reels.example.com). Public URL + redirect URI are derived below
-# so they cannot disagree with each other.
-# NOTE: the Dockerfile/compose were validated with `docker compose config` only; a full image build could not be
-# run in the authoring sandbox (its proxy blocks apt). Expect to fix small things on first build.
+# One-box production stack: Postgres + API + worker + Caddy (automatic HTTPS via Let's Encrypt HTTP-01).
+# Needs: Docker, ports 80/443 reachable, and a DNS A record for RS_DOMAIN -> this server (e.g. <name>.duckdns.org).
+# Everything secret lives in ./.env (git-ignored, chmod 600). RS_PUBLIC_BASE_URL and RS_META_REDIRECT_URI are DERIVED
+# from RS_DOMAIN below so they can never disagree. Publishing stays OFF and review-required by default (app defaults).
+# Caveat: validated with `docker compose config`; a full image build could not be run in the authoring sandbox.
+x-logging: &logging
+  driver: json-file
+  options: {max-size: "10m", max-file: "3"}     # keep a small disk from filling with logs
 x-app: &app
   build: .
   env_file: .env
   restart: unless-stopped
-  environment: &appenv
+  logging: *logging
+  environment:
     RS_DATABASE_URL: "postgresql+psycopg://reel:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/reelstudio"
     RS_PUBLIC_BASE_URL: "https://${RS_DOMAIN:?set RS_DOMAIN in .env}"
     RS_META_REDIRECT_URI: "https://${RS_DOMAIN}/api/instagram/callback"
@@ -19,6 +21,7 @@ services:
   db:
     image: postgres:16
     restart: unless-stopped
+    logging: *logging
     environment: {POSTGRES_USER: reel, POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?}", POSTGRES_DB: reelstudio}
     volumes: [pgdata:/var/lib/postgresql/data]
     healthcheck: {test: ["CMD-SHELL", "pg_isready -U reel -d reelstudio"], interval: 5s, retries: 10}
@@ -38,6 +41,7 @@ services:
   caddy:
     image: caddy:2
     restart: unless-stopped
+    logging: *logging
     ports: ["80:80", "443:443"]
     environment: {RS_DOMAIN: "${RS_DOMAIN}"}
     volumes: ["./deploy/Caddyfile:/etc/caddy/Caddyfile:ro", caddy_data:/data, caddy_config:/config]

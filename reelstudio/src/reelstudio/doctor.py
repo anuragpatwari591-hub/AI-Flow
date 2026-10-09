@@ -36,6 +36,10 @@ def _set(v: str) -> str:
 def check_config(st: Settings, rep: Report) -> str | None:
     """Returns the first config problem as a next action (or None)."""
     nxt: str | None = None
+    cfg_ok = (st.config_dir / "trends.yaml").exists()
+    rep.add("OK" if cfg_ok else "FAIL", "config directory", "found" if cfg_ok else f"{st.config_dir} has no trends.yaml (set RS_CONFIG_DIR / use an editable install)")
+    if not cfg_ok:
+        nxt = "Fix the config directory: set RS_CONFIG_DIR to the project's config/ folder."
     for name, val in (("RS_SECRET_KEY", st.secret_key), ("RS_DASHBOARD_TOKEN", st.dashboard_token),
                       ("RS_META_APP_ID", st.meta_app_id), ("RS_META_APP_SECRET", st.meta_app_secret),
                       ("RS_META_REDIRECT_URI", st.meta_redirect_uri), ("RS_PUBLIC_BASE_URL", st.public_base_url)):

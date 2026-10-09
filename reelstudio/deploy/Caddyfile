@@ -1,4 +1,14 @@
 {$RS_DOMAIN} {
 	encode gzip
+
+	# OPTIONAL hardening (uncomment and set your own IP): only you can reach the dashboard/API; Instagram still
+	# fetches /media/*. NOTE: the Instagram login redirect (/api/instagram/callback) comes from YOUR browser, so
+	# your IP must be allowed too. Remove/adjust if your home IP changes.
+	#@owner_only {
+	#	not path /media/* /healthz
+	#	not remote_ip 203.0.113.7
+	#}
+	#respond @owner_only 403
+
 	reverse_proxy api:8000
 }
