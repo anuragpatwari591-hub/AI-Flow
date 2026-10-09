@@ -1,0 +1,6 @@
+name: editorial_bold
+description: high-contrast bold sans, tighter pacing, tracking-in, beat pulse
+background: {type: solid, color: "#000000"}
+text: {font: inter_display_extrabold, size: 92, color: "#ffffff", line_spacing: 1.08, align: center, case: lower, max_width_ratio: 0.84, min_size: 56}
+animation: {in_style: tracking, in_duration: 0.55, tracking_from: 18, out_style: fade, out_duration: 0.25, zoom: 0.02, beat_pulse: 0.018, mode: replace, global_fade_out: 0.6}
+grain: {enabled: true, strength: 6}

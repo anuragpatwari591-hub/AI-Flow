@@ -1,0 +1,26 @@
+# Trend ranking configuration. All weights are tunable.
+weights:
+  momentum: 0.22
+  freshness: 0.15
+  audience_relevance: 0.20
+  engagement: 0.13
+  originality: 0.10
+  feasibility: 0.10
+  rights_clearance: 0.10
+freshness_half_life_days: 10
+# Audience profile used to ESTIMATE relevance (keyword overlap). Estimates are labelled as such.
+audience:
+  keywords: [late night, heartbreak, situationship, ex, texting, left on read, overthinking, self respect,
+             healing, moving on, nostalgia, friends, gym, college, 3am, delulu, red flag, ignoring, miss you]
+  avoid_keywords: [politics, election, tragedy, death, war, disaster, medical, diet pill]
+# Formats the renderer can produce (feasibility estimate).
+supported_features: [text_led, word_reveal, fade, zoom, grain, black_bg, beat_sync, tracking, footage_bg]
+# Seasonal / cultural calendar (month, day, name, lead_days). Facts from the public calendar, not live signals.
+seasonal:
+  - {month: 2, day: 14, name: "Valentine's Day (anti-valentine / single / situationship angle)", lead_days: 10}
+  - {month: 10, day: 31, name: "Halloween", lead_days: 10}
+  - {month: 11, day: 1, name: "Diwali season / Festive nostalgia (date varies yearly)", lead_days: 14, approximate: true}
+  - {month: 12, day: 31, name: "New Year reflection / who stayed", lead_days: 10}
+  - {month: 1, day: 1, name: "New Year reset", lead_days: 7}
+  - {month: 8, day: 1, name: "Friendship Day (date varies by country)", lead_days: 7, approximate: true}
+rss_feeds: []   # add public RSS/Atom URLs you are permitted to read: [{name: ..., url: ...}]

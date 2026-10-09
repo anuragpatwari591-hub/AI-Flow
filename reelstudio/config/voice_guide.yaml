@@ -1,0 +1,51 @@
+# Configurable voice guide. Edit freely; the engine, prompt and scorer all read this.
+voice:
+  persona: "a quiet, observant, slightly dry Gen Z narrator; speaks like a late-night text, not an ad"
+  case: lowercase
+  max_words_per_line: 8
+  max_lines: 5
+  tone_notes:
+    - short, concrete, specific (times, objects, phone details) beat abstract statements
+    - one idea per reel; the last line reframes or lands the payoff
+    - dry humour over exclamation; no forced slang
+    - never address the viewer with commands to like/follow/share
+banned_phrases:
+  - "in a world where"
+  - "no cap"
+  - "slay"
+  - "hits different"
+  - "main character energy"
+  - "let that sink in"
+  - "plot twist"
+  - "tag someone"
+  - "pov:"
+  - "this is your sign"
+  - "love is a battlefield"
+  - "time heals all wounds"
+categories:
+  relatable_genz:      {label: "Relatable Gen Z thoughts", mood: "lo-fi, soft pulse", template: midnight_minimal}
+  heartbreak_latenight: {label: "Heartbreak & late-night emotions", mood: "slow, ambient, sparse piano", template: soft_cinematic}
+  situationship:       {label: "Situationships & mixed signals", mood: "muted bass, slow R&B", template: midnight_minimal}
+  cold_attitude:       {label: "Cold attitude & self-respect", mood: "dark, minimal, steady beat", template: editorial_bold}
+  funny_savage:        {label: "Funny, ironic, mildly savage", mood: "dry, upbeat-minimal, staccato", template: editorial_bold}
+  cinematic_nostalgic: {label: "Cinematic, poetic, nostalgic", mood: "warm pads, reverb guitar, slow", template: soft_cinematic}
+hashtags:
+  max: 5
+  by_category:
+    relatable_genz: [relatable, genz, thoughts]
+    heartbreak_latenight: [latenightthoughts, heartbreak, healing]
+    situationship: [situationship, mixedsignals, texting]
+    cold_attitude: [selfrespect, standards, growth]
+    funny_savage: [funnyreels, sarcasm, relatablehumor]
+    cinematic_nostalgic: [nostalgia, poetry, cinematic]
+caption_style: "one lowercase line, no emoji spam, no engagement bait"
+timing:
+  words_per_second: 3.0
+  min_line_seconds: 1.6
+  last_line_hold_seconds: 2.4
+  intro_seconds: 0.6
+  max_duration_seconds: 14
+branding:
+  # Music branding is OPT-IN per reel, only for music-related content. Aesthetic reels never get it.
+  music_content_credit: "ANURAG · AP STUDIOS / Anurag Patwari Productions"
+  apply_to_categories: []

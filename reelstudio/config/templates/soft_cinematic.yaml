@@ -1,0 +1,6 @@
+name: soft_cinematic
+description: editorial serif italic, soft fades, vignette, optional footage background
+background: {type: solid, color: "#050506", vignette: true}
+text: {font: liberation_serif_italic, size: 84, color: "#e9e4dc", line_spacing: 1.22, align: center, case: lower, max_width_ratio: 0.8, min_size: 54}
+animation: {in_style: fade, in_duration: 1.0, out_style: fade, out_duration: 0.8, zoom: 0.04, beat_pulse: 0.0, mode: stack, dim_previous: 0.45, global_fade_out: 1.2}
+grain: {enabled: true, strength: 11}

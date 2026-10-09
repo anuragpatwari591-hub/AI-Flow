@@ -1,0 +1,6 @@
+name: midnight_minimal
+description: pure black, lowercase clean sans, slow word reveals
+background: {type: solid, color: "#000000"}
+text: {font: inter_medium, size: 74, color: "#f2f2f2", line_spacing: 1.28, align: center, case: lower, max_width_ratio: 0.8, min_size: 48}
+animation: {in_style: word_reveal, in_duration: 0.7, word_stagger: 0.16, out_style: fade, out_duration: 0.5, zoom: 0.025, beat_pulse: 0.0, mode: stack, dim_previous: 0.5, global_fade_out: 0.9}
+grain: {enabled: true, strength: 9}
