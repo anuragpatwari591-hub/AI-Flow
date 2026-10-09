@@ -19,6 +19,8 @@ class FakeGraph:
                                "total_interactions": 235, "ig_reels_avg_watch_time": 4100}
         self.unsupported = {"ig_reels_video_view_total_time"}
         self.token_valid = True
+        self.token_shape = "documented"  # documented | flat_list | flat_no_perms
+        self.probe_ok = True
 
     def client(self) -> httpx.Client:
         return httpx.Client(transport=httpx.MockTransport(self.handle))
@@ -36,8 +38,12 @@ class FakeGraph:
         if not self.token_valid and q.get("access_token", "").startswith("LL"):
             return self._err(190, "Invalid OAuth access token")
         if path == "/oauth/access_token":
-            return httpx.Response(200, json={"access_token": "SHORT123", "user_id": 111, "permissions": [
-                "instagram_business_basic", "instagram_business_content_publish", "instagram_business_manage_insights"]})
+            perms = "instagram_business_basic,instagram_business_content_publish,instagram_business_manage_insights"
+            if self.token_shape == "flat_list":
+                return httpx.Response(200, json={"access_token": "SHORT123", "user_id": 111, "permissions": perms.split(",")})
+            if self.token_shape == "flat_no_perms":
+                return httpx.Response(200, json={"access_token": "SHORT123", "user_id": 111})
+            return httpx.Response(200, json={"data": [{"access_token": "SHORT123", "user_id": "111", "permissions": perms}]})
         if path == "/access_token":
             return httpx.Response(200, json={"access_token": "LL_TOKEN_SECRET", "token_type": "bearer", "expires_in": self.token_expires})
         if path == "/refresh_access_token":
@@ -57,6 +63,8 @@ class FakeGraph:
             mid = f"m{len(self.published) + 1}"
             self.published.append(q["creation_id"])
             return httpx.Response(200, json={"id": mid})
+        if p.endswith("/content_publishing_limit"):
+            return httpx.Response(200, json={"data": [{"quota_usage": 0, "config": {"quota_total": 25}}]}) if self.probe_ok else self._err(10, "permission denied", 403)
         if p.endswith("/insights"):
             m = q["metric"]
             if m in self.unsupported:

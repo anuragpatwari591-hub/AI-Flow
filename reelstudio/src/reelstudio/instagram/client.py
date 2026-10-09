@@ -18,6 +18,37 @@ TOKEN_CODES = {102, 190}
 TRANSIENT_CODES = {1, 2}
 
 
+REQUIRED_SCOPES = ["instagram_business_basic", "instagram_business_content_publish"]  # insights is optional
+
+
+def parse_permissions(raw: Any) -> list[str]:
+    """Meta returns granted scopes as a comma-separated string; accept lists too. Never splits into characters."""
+    if raw is None:
+        return []
+    if isinstance(raw, str):
+        items = [x.strip() for x in raw.replace(" ", ",").split(",")]
+    elif isinstance(raw, (list, tuple)):
+        items = [str(x).strip() for x in raw]
+    else:
+        return []
+    return [x for x in dict.fromkeys(items) if x]
+
+
+def parse_token_response(raw: Any) -> dict[str, Any]:
+    """Normalise the short-lived token response: documented shape is {"data":[{access_token,user_id,permissions}]};
+    the older flat shape {access_token,user_id,permissions} is accepted too. Raises IGApiError(permanent) otherwise.
+    Error messages never include response values (they may contain tokens)."""
+    item: Any = raw
+    if isinstance(raw, dict) and "data" in raw:
+        d = raw["data"]
+        item = d[0] if isinstance(d, list) and d else d if isinstance(d, dict) else None
+    if not isinstance(item, dict) or not isinstance(item.get("access_token"), str) or not item["access_token"]:
+        raise IGApiError("token response had no access_token (unexpected response shape)", status=400, code=-2)
+    uid = item.get("user_id")
+    return {"access_token": item["access_token"], "user_id": str(uid) if uid not in (None, "") else "",
+            "permissions": parse_permissions(item.get("permissions"))}
+
+
 class IGApiError(Exception):
     def __init__(self, message: str, *, status: int = 0, code: int | None = None, subcode: int | None = None) -> None:
         super().__init__(message)
@@ -70,13 +101,16 @@ class IGClient:
         return f"https://www.instagram.com/oauth/authorize?{urlencode(q)}"
 
     def exchange_code(self, code: str) -> dict[str, Any]:
-        return self._call("POST", f"{self.oauth}/oauth/access_token", data={
+        return parse_token_response(self._call("POST", f"{self.oauth}/oauth/access_token", data={
             "client_id": self.app_id, "client_secret": self.app_secret, "grant_type": "authorization_code",
-            "redirect_uri": self.redirect_uri, "code": code})
+            "redirect_uri": self.redirect_uri, "code": code}))
 
     def long_lived(self, short_token: str) -> dict[str, Any]:
-        return self._call("GET", f"{self.graph}/access_token", params={
+        data = self._call("GET", f"{self.graph}/access_token", params={
             "grant_type": "ig_exchange_token", "client_secret": self.app_secret, "access_token": short_token})
+        if not isinstance(data.get("access_token"), str) or not data["access_token"]:
+            raise IGApiError("long-lived token response had no access_token", status=400, code=-2)
+        return data
 
     def refresh(self, token: str) -> dict[str, Any]:
         return self._call("GET", f"{self.graph}/refresh_access_token",

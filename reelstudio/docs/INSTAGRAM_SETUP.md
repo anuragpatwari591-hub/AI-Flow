@@ -14,6 +14,14 @@ Meta's public documentation as I know it; Meta changes these, so confirm against
 4. Add the OAuth redirect URI: `https://<your-host>/api/instagram/callback` (must be HTTPS).
 5. Put `RS_META_APP_ID`, `RS_META_APP_SECRET`, `RS_META_REDIRECT_URI` in the environment (never in Git).
 
+### Token-exchange response (B1, fixed)
+`IGClient.exchange_code` accepts both the documented shape `{"data":[{access_token,user_id,permissions}]}` (permissions
+= comma-separated string) and the older flat shape / list permissions. Granted scopes are stored exactly as reported and
+never assumed. **Required** by the code: `instagram_business_basic` + `instagram_business_content_publish`.
+`instagram_business_manage_insights` is **optional** (only analytics need it). If Meta reports no scopes, *Enable
+publishing* probes `content_publishing_limit` (read-only) instead of trusting a default. Verified against mocks and
+secondary summaries of Meta's docs only — not against a live call.
+
 ## 2. Media must be publicly fetchable
 Instagram pulls `video_url` from a public URL. Set `RS_PUBLIC_BASE_URL=https://<your-host>`; the app serves
 `/media/<reel>/<video|cover>/<signature>` where the signature is an HMAC of (reel, kind, file hash) — files are not

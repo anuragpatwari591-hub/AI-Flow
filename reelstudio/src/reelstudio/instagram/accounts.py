@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..db import IGAccount, audit, utcnow
-from .client import SCOPES, IGApiError, IGClient
+from .client import REQUIRED_SCOPES, IGApiError, IGClient
 from .secrets import TokenCipher
 
 log = logging.getLogger(__name__)
@@ -31,26 +31,30 @@ def eligibility(me: dict[str, Any]) -> tuple[bool, list[str]]:
 
 
 def connect_account(s: Session, client: IGClient, cipher: TokenCipher, code: str, actor: str = "owner") -> IGAccount:
-    short = client.exchange_code(code)
-    granted = short.get("permissions") or []
+    short = client.exchange_code(code)  # normalised: {access_token, user_id, permissions: list[str]}
+    granted = short["permissions"]
     token = short["access_token"]
     ll = client.long_lived(token)
     token = ll["access_token"]
     me = client.me(token)
     ok, problems = eligibility(me)
-    ig_id = str(me.get("user_id") or me.get("id") or short.get("user_id"))
+    ig_id = str(me.get("user_id") or me.get("id") or short.get("user_id") or "")
+    if not ig_id:
+        raise AccountError("could not determine the Instagram account id")
     acct = s.scalar(select(IGAccount).where(IGAccount.ig_user_id == ig_id)) or IGAccount(ig_user_id=ig_id)
     acct.username = me.get("username", "")
     acct.account_type = me.get("account_type", "")
     acct.token_encrypted = cipher.encrypt(token)
     acct.token_expires_at = utcnow() + timedelta(seconds=int(ll.get("expires_in", 0)))
-    acct.scopes = list(granted) if granted else SCOPES
+    acct.scopes = granted  # exactly what Meta reported; never assumed (empty = unreported)
     acct.revoked_at = None
     acct.publishing_enabled = False  # always requires explicit enabling after connect
     acct.is_destination = False
     s.add(acct)
     s.flush()
-    audit(s, "ig.connected", "account", acct.id, actor, username=acct.username, eligible=ok, problems=problems)
+    missing = [x for x in REQUIRED_SCOPES if x not in granted]
+    audit(s, "ig.connected", "account", acct.id, actor, username=acct.username, eligible=ok, problems=problems,
+          granted=granted, missing_required=missing if granted else "unreported")
     return acct
 
 
@@ -97,8 +101,16 @@ def enable_publishing(s: Session, client: IGClient, cipher: TokenCipher, acct: I
     ok, problems = eligibility(me)
     if not ok:
         raise AccountError("; ".join(problems))
-    if "instagram_business_content_publish" not in (acct.scopes or []):
-        raise AccountError("content publishing permission was not granted")
+    scopes = acct.scopes or []
+    if scopes:
+        missing = [x for x in REQUIRED_SCOPES if x not in scopes]
+        if missing:
+            raise AccountError(f"required permissions not granted: {missing}; reconnect and approve them")
+    else:  # Meta did not report scopes: verify with a read-only call that needs publishing permission
+        try:
+            client.publishing_limit(acct.ig_user_id, token)
+        except IGApiError as e:
+            raise AccountError(f"could not confirm publishing permission ({e.kind}); reconnect the account") from e
     acct.is_destination = True
     acct.publishing_enabled = True
     audit(s, "ig.publishing_enabled", "account", acct.id, actor, username=acct.username)
