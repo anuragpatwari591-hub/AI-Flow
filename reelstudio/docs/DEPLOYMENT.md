@@ -1,5 +1,15 @@
 # Deployment
 
+## Fastest path: one small server with Docker (automatic HTTPS)
+1. Any VPS with Docker + Compose, ports 80/443 open, and a DNS **A record** `reels.yourdomain.com` → the server IP.
+2. `git clone` the repo, `cd reelstudio`, `cp .env.example .env`, then edit `.env` (text editor; never paste into chat):
+   set `RS_SECRET_KEY`, `RS_DASHBOARD_TOKEN` (from `reelstudio gen-keys`), `RS_META_APP_ID`, `RS_META_APP_SECRET`,
+   `RS_DOMAIN=reels.yourdomain.com`, `POSTGRES_PASSWORD=<long random>`. Leave the URL variables alone — compose derives
+   `RS_PUBLIC_BASE_URL` and `RS_META_REDIRECT_URI=https://<domain>/api/instagram/callback` for you.
+3. `docker compose up -d --build`, then `docker compose exec api reelstudio doctor --live`.
+4. Register `https://<domain>/api/instagram/callback` as the OAuth redirect URI in Meta, open `https://<domain>/`.
+Caveat: not built end-to-end in the authoring sandbox (see compose header).
+
 ## Requirements
 Python ≥ 3.11, FFmpeg (libx264 + AAC), PostgreSQL ≥ 14, fonts registered in `config/fonts.yaml`, HTTPS in front of the app.
 

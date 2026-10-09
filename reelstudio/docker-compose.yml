@@ -1,22 +1,45 @@
-# Starting point; not built/run during development of this repo.
+# One-box production stack: Postgres + API + worker + Caddy (automatic HTTPS via Let's Encrypt).
+# Requirements: a server with Docker, ports 80/443 open, and a DNS A record for RS_DOMAIN pointing at it.
+# Secrets live in ./.env (git-ignored): RS_SECRET_KEY, RS_DASHBOARD_TOKEN, RS_META_APP_ID, RS_META_APP_SECRET,
+# plus POSTGRES_PASSWORD and RS_DOMAIN (e.g. reels.example.com). Public URL + redirect URI are derived below
+# so they cannot disagree with each other.
+# NOTE: the Dockerfile/compose were validated with `docker compose config` only; a full image build could not be
+# run in the authoring sandbox (its proxy blocks apt). Expect to fix small things on first build.
+x-app: &app
+  build: .
+  env_file: .env
+  restart: unless-stopped
+  environment: &appenv
+    RS_DATABASE_URL: "postgresql+psycopg://reel:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/reelstudio"
+    RS_PUBLIC_BASE_URL: "https://${RS_DOMAIN:?set RS_DOMAIN in .env}"
+    RS_META_REDIRECT_URI: "https://${RS_DOMAIN}/api/instagram/callback"
+    RS_DATA_DIR: /data
+  volumes: [data:/data]
 services:
   db:
     image: postgres:16
-    environment: {POSTGRES_USER: reel, POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?set it}", POSTGRES_DB: reelstudio}
+    restart: unless-stopped
+    environment: {POSTGRES_USER: reel, POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?}", POSTGRES_DB: reelstudio}
     volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck: {test: ["CMD-SHELL", "pg_isready -U reel -d reelstudio"], interval: 5s, retries: 10}
   api:
-    build: .
-    env_file: .env
-    environment: {RS_DATABASE_URL: "postgresql+psycopg://reel:${POSTGRES_PASSWORD}@db:5432/reelstudio"}
-    depends_on: [db]
-    ports: ["127.0.0.1:8000:8000"]
-    volumes: [data:/data]
+    <<: *app
+    depends_on: {db: {condition: service_healthy}}
     command: sh -c "reelstudio migrate && reelstudio serve --host 0.0.0.0 --port 8000"
-  worker:
-    build: .
-    env_file: .env
-    environment: {RS_DATABASE_URL: "postgresql+psycopg://reel:${POSTGRES_PASSWORD}@db:5432/reelstudio"}
-    depends_on: [api]
-    volumes: [data:/data]
+    expose: ["8000"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u;u.urlopen('http://127.0.0.1:8000/healthz',timeout=3)"]
+      interval: 10s
+      retries: 12
+  worker:            # exactly one instance
+    <<: *app
+    depends_on: {api: {condition: service_healthy}}
     command: reelstudio worker
-volumes: {pgdata: {}, data: {}}
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    environment: {RS_DOMAIN: "${RS_DOMAIN}"}
+    volumes: ["./deploy/Caddyfile:/etc/caddy/Caddyfile:ro", caddy_data:/data, caddy_config:/config]
+    depends_on: [api]
+volumes: {pgdata: {}, data: {}, caddy_data: {}, caddy_config: {}}

@@ -88,3 +88,16 @@ def test_render_is_deterministic_in_frames():
     spec = load_template("editorial_bold")
     plan = plan_render(spec, LINES, beats=[0.6, 3.0], scale=0.25)
     assert TextAnimator(plan).frame(3.3) == TextAnimator(plan).frame(3.3)
+
+
+def test_font_lookup_survives_distro_path_differences(tmp_path, monkeypatch):
+    """Same file name under a different directory (e.g. liberation2 vs liberation) must still resolve."""
+    import shutil
+    from reelstudio.render import fonts
+    real = fonts.font_record("inter_medium")["path"]
+    root = tmp_path / "fonts" / "other" / "dir"; root.mkdir(parents=True)
+    shutil.copy(real, root / "Inter-Medium.otf")
+    monkeypatch.setattr(fonts, "SEARCH_ROOTS", (str(tmp_path / "fonts"),))
+    got = fonts._resolve("/nonexistent/place/Inter-Medium.otf")
+    assert got and got.name == "Inter-Medium.otf"
+    assert fonts._resolve("/nonexistent/place/Nope.otf") is None

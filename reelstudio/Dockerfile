@@ -1,4 +1,5 @@
-FROM python:3.12-slim
+ARG PYTHON_IMAGE=python:3.12-slim
+FROM ${PYTHON_IMAGE}
 RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg fonts-inter fonts-liberation2 fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
