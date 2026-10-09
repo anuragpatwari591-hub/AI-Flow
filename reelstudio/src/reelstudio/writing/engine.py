@@ -72,7 +72,7 @@ def record_published_lines(s: Session, concept: Concept) -> None:
 
 def run_cycle(s: Session, provider: AIProvider | None = None, *, categories: list[str] | None = None,
               per_category: int = 2, top_trends: int = 5, account_insights: dict[str, Any] | None = None,
-              own_history_n: int = 0) -> list[Concept]:
+              own_history_n: int = 0, allocation: dict[str, int] | None = None) -> list[Concept]:
     voice = load_yaml("voice_guide.yaml")
     provider = provider or LocalSeedProvider()
     cycle_id = uuid.uuid4().hex[:12]
@@ -82,8 +82,9 @@ def run_cycle(s: Session, provider: AIProvider | None = None, *, categories: lis
     avoid = previous_lines(s)
     cycle_seed = s.query(Concept).count()
     created: list[Concept] = []
-    for cat in categories or list(voice["categories"]):
-        req = ConceptRequest(cat, per_category + 1, tdicts, voice, avoid, account_insights or {}, cycle_seed)
+    for cat in (list(allocation) if allocation else categories or list(voice["categories"])):
+        n_cat = allocation[cat] if allocation else per_category
+        req = ConceptRequest(cat, n_cat + 1, tdicts, voice, avoid, account_insights or {}, cycle_seed)
         try:
             raws = provider.generate_concepts(req)
         except Exception as e:  # provider errors must not kill the cycle
@@ -117,7 +118,7 @@ def run_cycle(s: Session, provider: AIProvider | None = None, *, categories: lis
             created.append(row)
             avoid.extend(l["text"] for l in c["lines"])
             kept += 1
-            if kept >= per_category:
+            if kept >= n_cat:
                 break
     s.flush()
     audit(s, "writing.cycle", "concept", None, cycle_id=cycle_id, created=len(created), provider=provider.name)

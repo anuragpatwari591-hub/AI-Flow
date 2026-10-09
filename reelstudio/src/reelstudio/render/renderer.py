@@ -261,7 +261,12 @@ def render_video(plan: RenderPlan, out: Path, *, audio: Path | None = None, prev
 
 def render_cover(plan: RenderPlan, out: Path, hook_index: int = 0) -> Path:
     """Cover = hook line fully revealed on the template background, kept inside the 3:4 grid-crop centre."""
-    spec = plan.spec
+    spec = plan.spec.model_copy(deep=True)
+    spec.text.size = round(spec.text.size * spec.cover_scale)
+    spec.text.min_size = round(spec.text.min_size * spec.cover_scale)
+    spec.animation.mode = "replace"
+    # keep the hook inside the centre 3:4 crop used by the profile grid (1080x1440 of 1080x1920)
+    spec.safe.top, spec.safe.bottom = max(spec.safe.top, 240), max(spec.safe.bottom, 240)
     lay = compute_layout(spec, [plan.lines[hook_index]["text"]], plan.scale)
     W, H = round(spec.canvas.width * plan.scale), round(spec.canvas.height * plan.scale)
     mask, _ = render_line_mask(spec, lay, 0, 0.0, plan.scale)

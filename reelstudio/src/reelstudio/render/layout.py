@@ -127,7 +127,7 @@ def compute_layout(spec: TemplateSpec, texts: list[str], scale: float = 1.0) -> 
                 if max(word_width(font, w, tr) for w in words) > max_w:
                     ok = False
                 vis.extend(balanced_lines(words, font, max_w, tr))
-            lines.append(LineLayout(t, vis, lh * max(len(vis), 1)))
+            lines.append(LineLayout(t, vis, lh * max(len(vis), 1) + 2 * round(isz * 0.2)))  # padding keeps ascenders/descenders
         gap = round(isz * 0.45)
         if stack:
             y = 0
@@ -165,6 +165,7 @@ def render_line_mask(spec: TemplateSpec, layout: BlockLayout, idx: int, tracking
     font = load_font(spec.text.font, layout.size)
     tr = spec.text.tracking * scale + tracking_extra
     lh = round(layout.size * spec.text.line_spacing)
+    pad = round(layout.size * 0.2)
     img = Image.new("L", (layout.width, ll.height), 0)
     d = ImageDraw.Draw(img)
     space = font.getlength(" ") + tr
@@ -173,7 +174,7 @@ def render_line_mask(spec: TemplateSpec, layout: BlockLayout, idx: int, tracking
         widths = [word_width(font, w, tr) for w in words]
         total = sum(widths) + space * (len(words) - 1)
         x = (layout.width - total) / 2 if spec.text.align == "center" else 0.0
-        y = vi * lh + (lh - layout.size) / 2 - layout.size * 0.12
+        y = pad + vi * lh + (lh - layout.size) / 2 - layout.size * 0.12
         for w, ww in zip(words, widths):
             if tr == 0:
                 d.text((x, y), w, font=font, fill=255)
@@ -182,7 +183,9 @@ def render_line_mask(spec: TemplateSpec, layout: BlockLayout, idx: int, tracking
                 for ch in w:
                     d.text((cx, y), ch, font=font, fill=255)
                     cx += font.getlength(ch) + tr
-            boxes.append(WordBox(w, max(int(x) - 2, 0), min(int(x + ww) + 3, layout.width), vi * lh, (vi + 1) * lh))
+            top = 0 if vi == 0 else pad + vi * lh
+            bot = ll.height if vi == len(ll.visual) - 1 else pad + (vi + 1) * lh
+            boxes.append(WordBox(w, max(int(x) - 2, 0), min(int(x + ww) + 3, layout.width), top, bot))
             x += ww + space
     return np.asarray(img), boxes
 

@@ -22,7 +22,8 @@ class AudioRightsError(Exception):
 
 def render_reel(s: Session, concept_id: int, *, template: str | None = None, overrides: dict[str, Any] | None = None,
                 audio_id: int | None = None, music_branding: bool = False, preview_only: bool = False,
-                out_root: Path | None = None, actor: str = "system") -> Reel:
+                out_root: Path | None = None, actor: str = "system", commit_early: bool = False, lines: list[dict[str, Any]] | None = None,
+                purpose: str = "organic") -> Reel:
     concept = s.get(Concept, concept_id)
     if concept is None:
         raise KeyError(f"concept {concept_id}")
@@ -44,6 +45,11 @@ def render_reel(s: Session, concept_id: int, *, template: str | None = None, ove
             if not ok:
                 audit(s, "render.audio_blocked", "audio", audio.id, actor, reasons=why)
                 raise AudioRightsError("; ".join(why))
+            if purpose == "ad":
+                ok, why = clearance(audio, "ads")
+                if not ok:
+                    audit(s, "render.audio_blocked", "audio", audio.id, actor, reasons=why, purpose="ad")
+                    raise AudioRightsError("ads: " + "; ".join(why))
             audio_path = Path(audio.local_file)
 
     if music_branding and concept.category in voice["branding"]["apply_to_categories"]:
@@ -51,17 +57,19 @@ def render_reel(s: Session, concept_id: int, *, template: str | None = None, ove
     spec = load_template(template or style.get("template", "midnight_minimal"), ov)
 
     reel = Reel(concept_id=concept.id, audio_id=audio.id if audio else None, template=spec.name,
-                render_status="rendering", needs_native_audio=needs_native)
+                render_status="rendering", needs_native_audio=needs_native, purpose=purpose)
     s.add(reel)
     s.flush()
+    if commit_early:  # make "rendering" status visible to the dashboard while FFmpeg runs
+        s.commit()
     root = (out_root or get_settings().renders_dir) / f"reel_{reel.id}"
     beats = audio.beats if audio else []
     try:
-        full_plan = plan_render(spec, concept.lines, beats, 1.0)
+        full_plan = plan_render(spec, lines or concept.lines, beats, 1.0)
         reel.qa = {"text": full_plan.qa_text}
         if not (full_plan.qa_text["text_fits_safe_area"] and full_plan.qa_text["contrast_ok"]):
             raise ValueError(f"readability check failed: {full_plan.qa_text}")
-        prev_plan = plan_render(spec, concept.lines, beats, 0.5)
+        prev_plan = plan_render(spec, lines or concept.lines, beats, 0.5)
         reel.preview_path = str(render_video(prev_plan, root / "preview.mp4", audio=audio_path, preview=True))
         reel.qa["preview"] = qa_video(Path(reel.preview_path), spec, 0.5, final=True)
         if not preview_only:

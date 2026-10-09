@@ -1,0 +1,12 @@
+[Unit]
+Description=Reel Studio API
+After=network.target postgresql.service
+[Service]
+EnvironmentFile=/etc/reelstudio/env
+WorkingDirectory=/opt/reelstudio
+ExecStart=/opt/reelstudio/.venv/bin/reelstudio serve --host 127.0.0.1 --port 8000
+Restart=on-failure
+User=reelstudio
+NoNewPrivileges=true
+[Install]
+WantedBy=multi-user.target

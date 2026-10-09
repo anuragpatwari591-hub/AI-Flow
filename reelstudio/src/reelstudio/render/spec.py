@@ -96,6 +96,7 @@ class TemplateSpec(BaseModel):
     min_contrast: float = Field(7.0, description="WCAG-style contrast floor vs effective background")
     outro_seconds: float = 0.8
     min_duration: float = 5.0
+    cover_scale: float = 1.45     # cover text is enlarged vs the video for legibility in the 3:4 profile grid
     duration_override: float | None = None
 
     @field_validator("min_contrast")

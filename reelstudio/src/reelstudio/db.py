@@ -147,6 +147,7 @@ class Reel(Base):
     qa: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     caption: Mapped[str] = mapped_column(Text, default="")
     needs_native_audio: Mapped[bool] = mapped_column(default=False)
+    purpose: Mapped[str] = mapped_column(String(12), default="organic")  # organic|ad (kept strictly separate)
     created_at: Mapped[datetime] = _dt()
     concept: Mapped[Concept] = relationship()
     audio: Mapped[AudioAsset | None] = relationship()

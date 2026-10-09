@@ -1,0 +1,21 @@
+# Defaults for automation settings (overridable at runtime from the dashboard; stored in the DB).
+paused: false                      # global emergency pause
+mode: review_required              # review_required | auto_publish_limited
+auto_publish:
+  enabled: false
+  min_human_approved_publishes: 3  # a "tested" policy requires this many successful human-approved publishes
+  max_per_day: 1
+  allowed_categories: []           # empty = none allowed
+  min_concept_score: 0.7
+publishing:
+  max_attempts: 5
+  backoff_base_seconds: 120
+  rate_limit_backoff_seconds: 3600
+  container_poll_attempts: 30
+  container_poll_interval_seconds: 5
+  max_caption_chars: 2200
+  max_hashtags: 30
+caption_blocklist_patterns:        # private-info / risky-content guards (regex, case-insensitive)
+  - '[\w.+-]+@[\w-]+\.[\w.]+'      # email addresses
+  - '\+?\d[\d\s().-]{8,}\d'        # phone-like numbers
+  - 'https?://'                    # raw links (not clickable in captions; avoid unverified destinations)

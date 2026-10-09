@@ -1,0 +1,22 @@
+# Starting point; not built/run during development of this repo.
+services:
+  db:
+    image: postgres:16
+    environment: {POSTGRES_USER: reel, POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?set it}", POSTGRES_DB: reelstudio}
+    volumes: [pgdata:/var/lib/postgresql/data]
+  api:
+    build: .
+    env_file: .env
+    environment: {RS_DATABASE_URL: "postgresql+psycopg://reel:${POSTGRES_PASSWORD}@db:5432/reelstudio"}
+    depends_on: [db]
+    ports: ["127.0.0.1:8000:8000"]
+    volumes: [data:/data]
+    command: sh -c "reelstudio migrate && reelstudio serve --host 0.0.0.0 --port 8000"
+  worker:
+    build: .
+    env_file: .env
+    environment: {RS_DATABASE_URL: "postgresql+psycopg://reel:${POSTGRES_PASSWORD}@db:5432/reelstudio"}
+    depends_on: [api]
+    volumes: [data:/data]
+    command: reelstudio worker
+volumes: {pgdata: {}, data: {}}

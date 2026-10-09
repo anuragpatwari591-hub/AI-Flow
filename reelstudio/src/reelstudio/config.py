@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     meta_redirect_uri: str = ""
     graph_version: str = "v21.0"
     public_base_url: str = ""
+    alert_webhook_url: str = ""   # optional Slack/Discord-style webhook for error alerts
 
     @property
     def media_dir(self) -> Path:
