@@ -160,7 +160,7 @@ def create_app(ig_client: IGClient | None = None, sync_render: bool = False) -> 
             s.execute(select(1))
         return {"ok": True, "ffmpeg": bool(shutil.which("ffmpeg")), "version": __version__}
 
-    @app.get("/media/{reel_id}/{kind}/{sig}")
+    @app.api_route("/media/{reel_id}/{kind}/{sig}", methods=["GET", "HEAD"])
     def media(reel_id: int, kind: str, sig: str) -> FileResponse:
         with session_scope() as s:
             reel = s.get(Reel, reel_id)
@@ -188,7 +188,8 @@ def create_app(ig_client: IGClient | None = None, sync_render: bool = False) -> 
             acct = connect_account(s, client(), cipher(), code.removesuffix("#_"))
         except (IGApiError, SecretsError) as e:
             raise HTTPException(400, f"connection failed: {e}")
-        return f"<h3>Connected @{acct.username}. Publishing stays OFF until you enable it in the dashboard.</h3><a href='/'>Back</a>"
+        return (f"<h3>Connected @{acct.username}.</h3><p>Publishing stays OFF until you enable it yourself in the dashboard. "
+                "You can close this tab and return to Reel Studio (your local dashboard, or the setup window).</p>")
 
     @app.get("/api/setup/status")
     def setup_status(live: bool = False, _: str = Depends(auth)) -> dict[str, Any]:

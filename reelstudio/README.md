@@ -9,6 +9,8 @@ Default mode is **REVIEW REQUIRED**: nothing is published or spent without a nam
 ## One command
 `reelstudio setup` (resumable) and `reelstudio setup --check` (read-only blockers report) — see `docs/SETUP.md`.
 
+**Windows 11 laptop, zero cost:** `powershell -ExecutionPolicy Bypass -File .\reelstudio\deploy\windows\setup-laptop.ps1` (see `docs/LAPTOP_WINDOWS.md`).
+
 ## Quick start (dev, SQLite)
 ```bash
 cd reelstudio
@@ -43,7 +45,7 @@ FFmpeg must be on PATH. (Playwright's bundled Chromium can't play H.264 previews
 - **Analytics:** a verdict needs ≥5 prior reels at matched age (~48 h); a group "winner" needs ≥3 reels per group and a ≥20 % lead; missing metrics are shown as n/a.
 
 ## Docs
-`SETUP.md` · `ARCHITECTURE.md` · `INSTAGRAM_SETUP.md` · `DEPLOYMENT.md` · `SECURITY_REVIEW.md` · `MANUAL_STEPS.md` (blockers & remaining manual work)
+`LAPTOP_WINDOWS.md` (zero-cost, Windows) · `SETUP.md` · `ARCHITECTURE.md` · `INSTAGRAM_SETUP.md` · `DEPLOYMENT.md` · `SECURITY_REVIEW.md` · `MANUAL_STEPS.md` (blockers & remaining manual work)
 
 ## Layout
 ```

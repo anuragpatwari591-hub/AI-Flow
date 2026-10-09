@@ -1,0 +1,17 @@
+# Public gate: the tunnel can reach ONLY what Instagram/Meta need. Everything else (dashboard, /api/*) is a 404.
+{
+	auto_https off
+	admin off
+}
+:8080 {
+	@public {
+		method GET HEAD
+		path /healthz /media/* /api/instagram/callback
+	}
+	handle @public {
+		reverse_proxy api:8000
+	}
+	handle {
+		respond "Not found" 404
+	}
+}

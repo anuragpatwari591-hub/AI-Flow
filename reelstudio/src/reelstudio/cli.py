@@ -23,6 +23,7 @@ def main(argv: list[str] | None = None) -> int:
     su.add_argument("--no-browser", action="store_true"); su.add_argument("--yes", action="store_true", help="confirm local `docker compose up` without asking")
     su.add_argument("--deploy", action="store_true", help="offer to run `docker compose up -d --build` on THIS machine")
     su.add_argument("--wait", type=int, default=None, help="seconds to wait for you to finish Instagram authorization (default 300 interactive)")
+    sub.add_parser("connect-url", help="print the Instagram authorization URL (no secrets; valid 10 minutes)")
     dr = sub.add_parser("doctor", help="read-only readiness report (no secrets printed, nothing published)")
     dr.add_argument("--live", action="store_true", help="also check the public host and call read-only Instagram endpoints")
     sv = sub.add_parser("serve", help="run API + dashboard")
@@ -52,6 +53,18 @@ def main(argv: list[str] | None = None) -> int:
         command.upgrade(cfg, "head")
         return 0
 
+    if a.cmd == "connect-url":
+        from .api.app import make_state
+        from .doctor import Report, check_config
+        from .instagram.client import IGClient
+        st0 = get_settings()
+        rep = Report()
+        problem = check_config(st0, rep)
+        if any(s == "FAIL" for s, _, _ in rep.checks):
+            print("configuration incomplete: " + (problem or "run `reelstudio setup --check`"), file=sys.stderr)
+            return 1
+        print(IGClient(st0.meta_app_id, st0.meta_app_secret, st0.meta_redirect_uri, st0.graph_version).authorize_url(make_state()))
+        return 0
     if a.cmd == "setup":
         from .setup import SetupLock, SetupOptions, render, run_setup, to_json
         interactive = sys.stdin.isatty() and not a.non_interactive and not a.check

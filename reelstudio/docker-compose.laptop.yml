@@ -1,0 +1,73 @@
+# Zero-cost personal-laptop stack (Windows 11 + Docker Desktop/WSL2, also fine on macOS/Linux):
+#   db + api + worker + "gate" (path-allowlist proxy) + ONE free HTTPS tunnel (profile "quick" or "ngrok").
+# The tunnel only ever reaches the gate, and the gate only forwards /healthz, /media/* and the Instagram OAuth callback.
+# Your dashboard and /api stay private on http://127.0.0.1:8000 (bound to loopback only).
+# Secrets: ./.env (app) and ./.env.tunnel (ngrok authtoken only; never given to the app containers).
+# Driven by deploy/windows/setup-laptop.ps1. Publishing stays OFF and review-required (application defaults).
+x-logging: &logging
+  driver: json-file
+  options: {max-size: "10m", max-file: "3"}
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    logging: *logging
+    environment: {POSTGRES_USER: reel, POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?run deploy/windows/setup-laptop.ps1}", POSTGRES_DB: reelstudio}
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck: {test: ["CMD-SHELL", "pg_isready -U reel -d reelstudio"], interval: 5s, retries: 20}
+  api:
+    build: .
+    image: reelstudio:local
+    restart: unless-stopped
+    logging: *logging
+    env_file: .env
+    environment: &appenv
+      RS_DATABASE_URL: "postgresql+psycopg://reel:${POSTGRES_PASSWORD}@db:5432/reelstudio"
+      RS_PUBLIC_BASE_URL: "${RS_PUBLIC_URL:?run deploy/windows/setup-laptop.ps1}"
+      RS_META_REDIRECT_URI: "${RS_PUBLIC_URL}/api/instagram/callback"
+      RS_DATA_DIR: /data
+    volumes: [data:/data]
+    depends_on: {db: {condition: service_healthy}}
+    command: sh -c "reelstudio migrate && reelstudio serve --host 0.0.0.0 --port 8000"
+    ports: ["127.0.0.1:8000:8000"]          # dashboard: http://localhost:8000 (loopback only)
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u;u.urlopen('http://127.0.0.1:8000/healthz',timeout=3)"]
+      interval: 10s
+      retries: 18
+  worker:                                   # exactly one instance
+    image: reelstudio:local
+    restart: unless-stopped
+    logging: *logging
+    env_file: .env
+    environment: *appenv
+    volumes: [data:/data]
+    depends_on: {api: {condition: service_healthy}}
+    command: reelstudio worker
+    healthcheck:
+      test: ["CMD", "python", "-c", "import time,sys;sys.exit(0 if time.time()-float(open('/data/worker.heartbeat').read())<180 else 1)"]
+      interval: 30s
+      retries: 3
+      start_period: 60s
+  gate:                                     # only these paths are reachable from the internet
+    image: caddy:2
+    restart: unless-stopped
+    logging: *logging
+    volumes: ["./deploy/Caddyfile.tunnel:/etc/caddy/Caddyfile:ro"]
+    depends_on: [api]
+    expose: ["8080"]
+  cloudflared:                              # profile "quick": free, no account, URL changes every start
+    image: cloudflare/cloudflared:latest
+    profiles: ["quick"]
+    restart: unless-stopped
+    logging: *logging
+    command: tunnel --no-autoupdate --url http://gate:8080
+    depends_on: [gate]
+  ngrok:                                    # profile "ngrok": needs a free ngrok account; stable *.ngrok-free.app name
+    image: ngrok/ngrok:latest
+    profiles: ["ngrok"]
+    restart: unless-stopped
+    logging: *logging
+    env_file: [{path: .env.tunnel, required: false}]
+    command: ["http", "gate:8080", "--url=${NGROK_DOMAIN:-unset.invalid}"]
+    depends_on: [gate]
+volumes: {pgdata: {}, data: {}}

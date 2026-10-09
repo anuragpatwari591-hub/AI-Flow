@@ -1,0 +1,7 @@
+# Keep scripts/configs LF so Windows checkouts (core.autocrlf) don't break containers or shells.
+reelstudio/**/*.sh text eol=lf
+reelstudio/**/*.yml text eol=lf
+reelstudio/**/*.yaml text eol=lf
+reelstudio/deploy/Caddyfile* text eol=lf
+reelstudio/Dockerfile text eol=lf
+reelstudio/**/*.ps1 text eol=crlf
