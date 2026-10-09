@@ -12,6 +12,26 @@ from .instagram.secrets import TokenCipher
 from .publishing.queue import run_due
 
 log = logging.getLogger(__name__)
+HEARTBEAT_NAME = "worker.heartbeat"
+
+
+def heartbeat_path():
+    return get_settings().data_dir / HEARTBEAT_NAME
+
+
+def touch_heartbeat() -> None:
+    p = heartbeat_path()
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(str(time.time()))
+
+
+def heartbeat_age() -> float | None:
+    """Seconds since the worker last completed a loop iteration (None = never)."""
+    p = heartbeat_path()
+    try:
+        return max(time.time() - float(p.read_text()), 0.0)
+    except (OSError, ValueError):
+        return None
 
 
 def make_client() -> IGClient:
@@ -33,6 +53,7 @@ def tick(client: IGClient | None = None, cipher: TokenCipher | None = None) -> d
 def run_forever(interval: float = 30.0) -> None:
     log.info("worker started")
     while True:
+        touch_heartbeat()
         try:
             res = tick()
             if any(res.values()):

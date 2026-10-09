@@ -11,8 +11,11 @@ import httpx
 
 from .config import Settings
 from .instagram.client import REQUIRED_SCOPES, IGApiError, IGClient
+from .instagram.secrets import SecretsError
 
 CALLBACK_PATH = "/api/instagram/callback"
+HOSTING_ACTION = ("Get a small Ubuntu server with a free DuckDNS name pointing at it, then run `bash deploy/setup-vps.sh` on it "
+                  "(docs/DEPLOYMENT.md). `reelstudio setup` never signs you up for hosting or spends money.")
 
 
 @dataclass
@@ -68,7 +71,7 @@ def check_config(st: Settings, rep: Report) -> str | None:
         ok = pb.scheme == "https" and bool(pb.netloc) and not pb.path.strip("/") and pb.hostname not in ("localhost", "127.0.0.1")
         rep.add("OK" if ok else "FAIL", "RS_PUBLIC_BASE_URL form", "public https origin, no path" if ok else "must be a public https:// origin (no path, not localhost)")
         if not ok:
-            nxt = nxt or "Start a public HTTPS tunnel/host for this app and set RS_PUBLIC_BASE_URL to its https:// origin."
+            nxt = nxt or HOSTING_ACTION
     if st.meta_redirect_uri:
         problems = []
         if ru.scheme != "https":
@@ -85,8 +88,7 @@ def check_config(st: Settings, rep: Report) -> str | None:
     elif st.public_base_url:
         nxt = nxt or f"Set RS_META_REDIRECT_URI={st.public_base_url.rstrip('/')}{CALLBACK_PATH} and register that identical URL in Meta."
     if not (st.public_base_url and st.meta_redirect_uri):
-        nxt = nxt or ("Run the app where it can be reached over public HTTPS (own server, or a tunnel to 127.0.0.1:8000), then set "
-                      f"RS_PUBLIC_BASE_URL and RS_META_REDIRECT_URI=<that origin>{CALLBACK_PATH}.")
+        nxt = nxt or HOSTING_ACTION
     return nxt
 
 
@@ -143,6 +145,9 @@ def check_accounts(st: Settings, rep: Report, session: Any, client: IGClient | N
                 rep.add("OK", f"@{a.username} live publishing permission probe", "content_publishing_limit readable (read-only)")
             except IGApiError as e:
                 rep.add("FAIL", f"@{a.username} live check", f"{e.kind}: {str(e)[:120]}")
+                nxt = nxt or "CONNECT"
+            except SecretsError as e:
+                rep.add("FAIL", f"@{a.username} stored token", f"{e} (RS_SECRET_KEY changed or token corrupted)")
                 nxt = nxt or "CONNECT"
         rep.add("OK" if a.publishing_enabled else "INFO", f"@{a.username} publishing", "ENABLED (every post still needs your approval)" if a.publishing_enabled else "OFF")
     return nxt

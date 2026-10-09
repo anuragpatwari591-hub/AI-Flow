@@ -24,7 +24,7 @@ from ..db import Concept, IGAccount, PublishJob, Reel, audit, get_setting, set_s
 from ..instagram.accounts import AccountError, get_token, refresh_if_needed, token_status
 from ..instagram.client import IGApiError, IGClient
 from ..instagram.secrets import TokenCipher
-from .media import file_sha256, public_url
+from .media import MediaUnreachable, file_sha256, public_url, verify_public_media
 
 log = logging.getLogger(__name__)
 TERMINAL = {"published", "failed", "cancelled", "rejected"}
@@ -250,9 +250,16 @@ def publish_job(s: Session, job: PublishJob, client: IGClient, cipher: TokenCiph
         refresh_if_needed(s, client, cipher, acct)
         token = get_token(acct, cipher)
         if not job.container_id:  # reuse container on retry: prevents duplicate uploads
+            video_url = public_url(reel.id, "video", reel.video_sha256)
+            cover_url = public_url(reel.id, "cover", reel.video_sha256)
+            try:  # verify public accessibility BEFORE asking Instagram to fetch anything
+                verify_public_media(video_url, Path(reel.video_path).stat().st_size, "video/")
+                verify_public_media(cover_url, Path(reel.cover_path).stat().st_size, "image/")
+            except MediaUnreachable as e:
+                raise IGApiError(f"media not publicly accessible: {e}", status=0) from e   # transient -> retry later
+            audit(s, "media.public_verified", "job", job.id)
             job.container_id = client.create_reel_container(
-                acct.ig_user_id, token, video_url=public_url(reel.id, "video", reel.video_sha256),
-                caption=reel.caption, cover_url=public_url(reel.id, "cover", reel.video_sha256))
+                acct.ig_user_id, token, video_url=video_url, caption=reel.caption, cover_url=cover_url)
             audit(s, "ig.container_created", "job", job.id, container_id=job.container_id)
         status = "IN_PROGRESS"
         for _ in range(cfg["publishing"]["container_poll_attempts"]):
@@ -281,10 +288,29 @@ def publish_job(s: Session, job: PublishJob, client: IGClient, cipher: TokenCiph
         _fail_or_retry(s, job, e, cfg)
 
 
+LEASE = timedelta(minutes=15)   # a claimed job must finish (or retry) within this, else it is considered interrupted
+
+
+def recover_stale(s: Session, now: datetime) -> list[int]:
+    """Jobs left in `publishing` by a crashed/restarted worker go back to `scheduled` (same container is reused).
+    If Instagram already published that container, the retry will fail and say so: check Instagram before re-posting."""
+    out = []
+    for job in s.scalars(select(PublishJob).where(PublishJob.status == "publishing")):
+        if job.next_attempt_at is None or job.next_attempt_at <= now:
+            job.next_attempt_at = None
+            job.last_error = "recovered after worker interruption; if this fails, check Instagram to see whether it already posted"
+            transition(s, job, "scheduled", "scheduler", recovered=True, container_id=job.container_id or None)
+            out.append(job.id)
+    if out:
+        s.commit()
+    return out
+
+
 def run_due(s: Session, client: IGClient, cipher: TokenCipher, now: datetime | None = None,
             sleep: Callable[[float], None] = time.sleep) -> list[int]:
     """Process due jobs. Safe to call concurrently: each job is claimed with an atomic UPDATE."""
     now = now or utcnow()
+    recover_stale(s, now)          # state repair runs even while paused
     if automation(s).get("paused"):
         return []
     due = list(s.scalars(select(PublishJob).where(
@@ -294,7 +320,8 @@ def run_due(s: Session, client: IGClient, cipher: TokenCipher, now: datetime | N
         if job.next_attempt_at and job.next_attempt_at > now:
             continue
         claimed = s.execute(update(PublishJob).where(PublishJob.id == job.id, PublishJob.status == "scheduled")
-                            .values(status="publishing", attempts=PublishJob.attempts + 1)).rowcount
+                            .values(status="publishing", attempts=PublishJob.attempts + 1,
+                                    next_attempt_at=now + LEASE)).rowcount
         if not claimed:
             continue
         s.refresh(job)

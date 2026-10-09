@@ -38,6 +38,11 @@ services:
     <<: *app
     depends_on: {api: {condition: service_healthy}}
     command: reelstudio worker
+    healthcheck:
+      test: ["CMD", "python", "-c", "import time,sys;sys.exit(0 if time.time()-float(open('/data/worker.heartbeat').read())<180 else 1)"]
+      interval: 30s
+      retries: 3
+      start_period: 60s
   caddy:
     image: caddy:2
     restart: unless-stopped

@@ -190,6 +190,14 @@ def create_app(ig_client: IGClient | None = None, sync_render: bool = False) -> 
             raise HTTPException(400, f"connection failed: {e}")
         return f"<h3>Connected @{acct.username}. Publishing stays OFF until you enable it in the dashboard.</h3><a href='/'>Back</a>"
 
+    @app.get("/api/setup/status")
+    def setup_status(live: bool = False, _: str = Depends(auth)) -> dict[str, Any]:
+        """Same engine as `reelstudio setup --check` (read-only). Never includes secrets or the Connect URL."""
+        from ..setup import run_setup, SetupOptions, to_json
+        rep = run_setup(SetupOptions(mutate=False, live=live), load=get_settings, session_factory=get_session_factory(),
+                        ig_client=app.state.ig_client)
+        return json.loads(to_json(rep))
+
     # ------------------------------------------------------------------ overview
     @app.get("/api/overview")
     def overview(_: str = Depends(auth), s: Session = Depends(db)) -> dict[str, Any]:
@@ -350,6 +358,10 @@ def create_app(ig_client: IGClient | None = None, sync_render: bool = False) -> 
             d = to_dict(j)
             d["hook"], d["category"], d["needs_native_audio"] = j.reel.concept.hook, j.reel.concept.category, j.reel.needs_native_audio
             d["account"] = j.account.username
+            d["caption"], d["lines"] = j.reel.caption, [l["text"] for l in j.reel.concept.lines]
+            if j.reel.cover_path and get_settings().secret_key:
+                from ..publishing.media import sign_media as _sm
+                d["cover_url"] = f"/media/{j.reel.id}/cover/{_sm(j.reel.id, 'cover', j.reel.video_sha256 or 'preview')}"
             if j.reel.preview_path and get_settings().secret_key:
                 from ..publishing.media import sign_media
                 d["preview_url"] = f"/media/{j.reel.id}/preview/{sign_media(j.reel.id, 'preview', j.reel.video_sha256 or 'preview')}"

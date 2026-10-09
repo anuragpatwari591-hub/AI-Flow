@@ -16,6 +16,13 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("migrate", help="apply database migrations (alembic upgrade head)")
     sub.add_parser("gen-keys", help="print a fresh RS_SECRET_KEY and RS_DASHBOARD_TOKEN")
     sub.add_parser("fonts", help="print the font licence table")
+    su = sub.add_parser("setup", help="one-command setup & readiness (resumable); --check is read-only")
+    su.add_argument("--check", action="store_true", help="read-only: report exact remaining blockers, change nothing")
+    su.add_argument("--offline", action="store_true", help="skip network checks")
+    su.add_argument("--json", action="store_true"); su.add_argument("--non-interactive", action="store_true")
+    su.add_argument("--no-browser", action="store_true"); su.add_argument("--yes", action="store_true", help="confirm local `docker compose up` without asking")
+    su.add_argument("--deploy", action="store_true", help="offer to run `docker compose up -d --build` on THIS machine")
+    su.add_argument("--wait", type=int, default=None, help="seconds to wait for you to finish Instagram authorization (default 300 interactive)")
     dr = sub.add_parser("doctor", help="read-only readiness report (no secrets printed, nothing published)")
     dr.add_argument("--live", action="store_true", help="also check the public host and call read-only Instagram endpoints")
     sv = sub.add_parser("serve", help="run API + dashboard")
@@ -45,6 +52,21 @@ def main(argv: list[str] | None = None) -> int:
         command.upgrade(cfg, "head")
         return 0
 
+    if a.cmd == "setup":
+        from .setup import SetupLock, SetupOptions, render, run_setup, to_json
+        interactive = sys.stdin.isatty() and not a.non_interactive and not a.check
+        opts = SetupOptions(mutate=not a.check, live=not a.offline, interactive=interactive, open_browser=not a.no_browser,
+                            wait_seconds=(a.wait if a.wait is not None else (300 if interactive else 0)), deploy=a.deploy, assume_yes=a.yes)
+        try:
+            if opts.mutate:
+                with SetupLock(get_settings().data_dir / "setup.lock"):
+                    rep = run_setup(opts)
+            else:
+                rep = run_setup(opts)
+        except RuntimeError as e:
+            print(str(e)); return 2
+        print(to_json(rep) if a.json else render(rep))
+        return 0 if rep.next_action == "READY" else 1
     from . import db
     st = get_settings()
     if a.cmd == "doctor":

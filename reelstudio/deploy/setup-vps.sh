@@ -52,9 +52,11 @@ echo "==> Waiting for the API to become healthy"
 for i in $(seq 1 60); do
   [ "$(docker_c compose ps --format '{{.Health}}' api 2>/dev/null)" = "healthy" ] && break; sleep 5
 done
-docker_c compose exec -T api reelstudio doctor --live || true
+docker_c compose exec -T api reelstudio setup --check || true
 DOMAIN="$(grep '^RS_DOMAIN=' .env | cut -d= -f2)"
 echo
 echo "Dashboard:      https://$DOMAIN/   (login token = RS_DASHBOARD_TOKEN inside .env; view it only on this server)"
 echo "Meta callback:  https://$DOMAIN/api/instagram/callback   <- register EXACTLY this in Meta (OAuth redirect URIs)"
+echo "Next: register the Meta callback above, then run:   sudo docker compose exec api reelstudio setup"
+echo "      (it prints your Instagram Connect URL, waits while you authorize in the browser, then verifies permissions)."
 echo "Publishing is OFF and every post needs your approval."

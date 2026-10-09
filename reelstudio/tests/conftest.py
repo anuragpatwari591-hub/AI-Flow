@@ -60,3 +60,10 @@ def stack(session, env, tmp_path):
                        out_root=tmp_path / "renders")
     assert reel.render_status == "rendered", reel.render_error
     return type("Stack", (), dict(s=session, fake=fake, client=client, cipher=cipher, acct=acct, reel=reel, concept=concept))
+
+
+@pytest.fixture(autouse=True)
+def _no_real_media_fetch(monkeypatch):
+    """Tests never hit the network for media checks; dedicated tests exercise verify_public_media directly."""
+    from reelstudio.publishing import queue
+    monkeypatch.setattr(queue, "verify_public_media", lambda *a, **k: None)

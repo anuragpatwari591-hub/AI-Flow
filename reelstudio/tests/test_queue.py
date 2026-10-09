@@ -25,7 +25,7 @@ def test_happy_path_requires_human_approval_then_publishes(stack):
     assert job.status == "published" and job.ig_media_id == "m1" and "instagram.com" in job.permalink
     call = stack.fake.containers["c1"]
     assert call["media_type"] == "REELS" and call["video_url"].startswith("https://studio.example.test/media/")
-    assert audit_actions(s, job) == ["job.created", "job.scheduled", "job.publishing", "ig.container_created", "job.published"]
+    assert audit_actions(s, job) == ["job.created", "job.scheduled", "job.publishing", "media.public_verified", "ig.container_created", "job.published"]
 
 
 def test_duplicate_submission_blocked_and_resubmit_after_cancel(stack):

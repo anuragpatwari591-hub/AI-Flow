@@ -6,6 +6,9 @@ Default mode is **REVIEW REQUIRED**: nothing is published or spent without a nam
 
 > Lives in `reelstudio/` inside the AI-Flow repo (independent of the browser extension in the repo root).
 
+## One command
+`reelstudio setup` (resumable) and `reelstudio setup --check` (read-only blockers report) — see `docs/SETUP.md`.
+
 ## Quick start (dev, SQLite)
 ```bash
 cd reelstudio
@@ -40,7 +43,7 @@ FFmpeg must be on PATH. (Playwright's bundled Chromium can't play H.264 previews
 - **Analytics:** a verdict needs ≥5 prior reels at matched age (~48 h); a group "winner" needs ≥3 reels per group and a ≥20 % lead; missing metrics are shown as n/a.
 
 ## Docs
-`ARCHITECTURE.md` · `INSTAGRAM_SETUP.md` · `DEPLOYMENT.md` · `SECURITY_REVIEW.md` · `MANUAL_STEPS.md` (blockers & remaining manual work)
+`SETUP.md` · `ARCHITECTURE.md` · `INSTAGRAM_SETUP.md` · `DEPLOYMENT.md` · `SECURITY_REVIEW.md` · `MANUAL_STEPS.md` (blockers & remaining manual work)
 
 ## Layout
 ```
