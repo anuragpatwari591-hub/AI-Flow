@@ -5,6 +5,11 @@ Instagram account.** Do the live smoke test below before trusting it. Endpoint, 
 Meta's public documentation as I know it; Meta changes these, so confirm against the current docs for your API version
 (`RS_GRAPH_VERSION`).
 
+## 0. Check readiness any time
+`reelstudio doctor` (add `--live` to also hit your public `/healthz` and call read-only Instagram endpoints) prints
+OK/WARN/FAIL for configuration, redirect-URI correctness, token/scope status and publishing state — never secret values —
+and ends with exactly one `NEXT:` action (including the Connect URL when the account isn't connected).
+
 ## 1. Prerequisites (manual)
 1. Convert the Instagram account to a **Professional (Business or Creator)** account.
 2. Create a Meta developer app → add the **Instagram API with Instagram Login** product.

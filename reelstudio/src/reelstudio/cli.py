@@ -16,6 +16,8 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("migrate", help="apply database migrations (alembic upgrade head)")
     sub.add_parser("gen-keys", help="print a fresh RS_SECRET_KEY and RS_DASHBOARD_TOKEN")
     sub.add_parser("fonts", help="print the font licence table")
+    dr = sub.add_parser("doctor", help="read-only readiness report (no secrets printed, nothing published)")
+    dr.add_argument("--live", action="store_true", help="also check the public host and call read-only Instagram endpoints")
     sv = sub.add_parser("serve", help="run API + dashboard")
     sv.add_argument("--host", default="127.0.0.1"); sv.add_argument("--port", type=int, default=8000)
     wk = sub.add_parser("worker", help="run scheduler/worker loop"); wk.add_argument("--interval", type=float, default=30)
@@ -45,6 +47,14 @@ def main(argv: list[str] | None = None) -> int:
 
     from . import db
     st = get_settings()
+    if a.cmd == "doctor":
+        from .doctor import build_report, render
+        st.data_dir.mkdir(parents=True, exist_ok=True)
+        db.init_db(create_all=st.database_url.startswith("sqlite"))
+        with db.session_scope() as s:
+            rep = build_report(st, s, live=a.live)
+        print(render(rep))
+        return 1 if rep.blocked else 0
     st.data_dir.mkdir(parents=True, exist_ok=True)
     db.init_db(create_all=st.database_url.startswith("sqlite"))  # Postgres: use `reelstudio migrate`
     if a.cmd == "serve":
